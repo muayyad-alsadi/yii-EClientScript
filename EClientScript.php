@@ -201,18 +201,7 @@ class EClientScript extends CClientScript
 				$fname = $this->getCombinedFileName($this->cssFileName, $files, $media);
 				$fpath = Yii::app()->assetManager->basePath . DIRECTORY_SEPARATOR . $fname;
 				// check exists file
-				if ($valid = file_exists($fpath))
-				{
-					$mtime = filemtime($fpath);
-					foreach ($files as $file)
-					{
-						if ($mtime < filemtime($file))
-						{
-							$valid = false;
-							break;
-						}
-					}
-				}
+				$valid = file_exists($fpath);
 				// re-generate the file
 				if (!$valid)
 				{
@@ -286,18 +275,7 @@ class EClientScript extends CClientScript
 			$fname = $this->getCombinedFileName($this->scriptFileName, array_values($toBeCombined), $type);
 			$fpath = Yii::app()->assetManager->basePath . DIRECTORY_SEPARATOR . $fname;
 			// check exists file
-			if ($valid = file_exists($fpath))
-			{
-				$mtime = filemtime($fpath);
-				foreach ($toBeCombined as $file)
-				{
-					if ($mtime < filemtime($file))
-					{
-						$valid = false;
-						break;
-					}
-				}
-			}
+			$valid = file_exists($fpath);
 			// re-generate the file
 			if (!$valid)
 			{
@@ -317,7 +295,7 @@ class EClientScript extends CClientScript
 							$fileBuffer .= number_format(strlen($contents));
 						}
 						$fileBuffer .= " ***/\n";
-						$fileBuffer .= $contents . "\n\n";
+						$fileBuffer .= $contents . "\n;\n";
 					}
 				}
 				file_put_contents($fpath, $fileBuffer);
@@ -370,6 +348,15 @@ class EClientScript extends CClientScript
 	}
 
 	/**
+	 * Generates base64-like md5sum hash (smaller than hex md5sum)
+	 * @param string $s the string to hash
+	 * @return string a one way hash of the given string
+	 */
+	public function hash($s) {
+		return str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode(md5($s,1)));
+	}
+
+	/**
 	 * Get unique filename for combined files
 	 * @param string $name default filename
 	 * @param array $files files to be combined
@@ -381,7 +368,9 @@ class EClientScript extends CClientScript
 		$pos = strrpos($name, '.');
 		if (!$pos)
 			$pos = strlen($pos);
-		$hash = sprintf('%x', crc32(implode('+', $files)));
+		$s='';
+		foreach($files as $file) $s.="\0$file\0".filemtime($file);
+		$hash = self::hash($s);
 
 		$ret = substr($name, 0, $pos);
 		if ($type !== '')
