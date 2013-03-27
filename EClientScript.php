@@ -1,12 +1,15 @@
 <?php
 /**
- * Extended Client Script Manager Class File
+ * optimizing client script manager that can minify and combine files (extends CClientScript)
  *
- * @author Hightman <hightman2[at]yahoo[dot]com[dot]cn>
+ * @author Muayyad Alsadi <alsadi[at]gmail>
+ * @link http://ojuba.org/
+ *
+ * heavily based on Hightman's EClientScript v1.3
+ * @author hightman <hightman2@yahoo.com.cn>
  * @link http://www.czxiu.com/
- * @copyright hightman
  * @license http://www.yiiframework.com/license/
- * @version 1.3
+ * @version 1.4
  *
  */
 /**
@@ -33,9 +36,9 @@
   If you use 'CClientScript::POS_HEAD' and 'CClientScript::POS_END' for example then you'll
   end up with two files for each page on that request, Since those resources are located in different positions.
 
-  ####File optmization or compress (EXPERIMENTAL, @since: 1.1)
+  ####File optmization or compress (@since: 1.1)
   [CssMin](http://code.google.com/p/cssmin/) used to optmize merged css file. You can set property 'optmizeCssFiles' of the component to enable this feature.
-  [JSMinPlus](http://crisp.tweakblogs.net/blog/1856/jsmin+-version-13.html) used to optimize merged script file. You can set property 'optmizeScriptFiles' of the component to enable this feature.
+  [JSMinPlus](http://crisp.tweakblogs.net/blog/6861/jsmin%2B-version-14.html) used to optimize merged script file. You can set property 'optmizeScriptFiles' of the component to enable this feature.
 
   Usage:
   ---------------
@@ -46,10 +49,10 @@
   [php]
   'clientScript' => array(
   'class' => 'ext.minify.EClientScript',
-  'combineScriptFiles' => true, // By default this is set to false, set this to true if you'd like to combine the script files
-  'combineCssFiles' => true, // By default this is set to false, set this to true if you'd like to combine the css files
-  'optimizeScriptFiles' => false,	// @since: 1.1
-  'optimizeCssFiles' => false,	// @since: 1.1
+  'combineScriptFiles' => true, // By default this is set to true, change it to false to disable combining JS files
+  'combineCssFiles' => true, // By default this is set to true, change it to false to disable combining CSS files
+  'optimizeScriptFiles' => true,	// @since: 1.1
+  'optimizeCssFiles' => true,	// @since: 1.1
   ),
   ~~~
 
@@ -58,26 +61,26 @@
   NOTE:
   ---------------
   If you registered some external resource files that not in the web application root directory, they will be kept and not combined.
-  Compression or optmization is a EXPERIMENTAL feature, please use it carefully(@since: 1.1)
 
   ChangesLog:
   ---------------
+  Mar 27, 2013
+  * New version number 1.4
+  * update JSMinPlus, CssMin
+  * use stronger hash for file names
+  * consider modification time for calculating hash
+  * enable all features by default
   Nov 23, 2010
-  * Skip the minimization of files whose names include `.pack.`
+  * Skip the minimization of files whose names include `.pack.` (and `.min.`)
   * Add the last modification time as the QUERY_STRING to merged file, to avoid not properly flush the browser cache when the file updated.
   Nov 6, 2010
   * New version number 1.3
   * Not repeat the minimization of files those who have been minimized, whose names include `.min.`
   * Fixed `getRelativeUrl()` platform compatibility issue. (thanks to Troto)
 
-  Known Issues:
-  ----------------
-  When some resource files can not be merged and strictly dependent on loading order, then may have some problem.
-
   Reporting Issue:
   -----------------
-  Reporting Issues and comments are welcome, plz report them to offical forum of Yii.
-  [Report issue](http://www.yiiframework.com/forum/index.php?/topic/12476-extension-eclientscript/)
+  report issues to https://github.com/muayyad-alsadi/yii-EClientScript/issues
 
  */
 
@@ -102,19 +105,19 @@ class EClientScript extends CClientScript
 	/**
 	 * @var boolean if to combine the script files or not
 	 */
-	public $combineScriptFiles = false;
+	public $combineScriptFiles = true;
 	/**
 	 * @var boolean if to combine the css files or not
 	 */
-	public $combineCssFiles = false;
+	public $combineCssFiles = true;
 	/**
 	 * @var boolean if to optimize the css files
 	 */
-	public $optimizeCssFiles = false;
+	public $optimizeCssFiles = true;
 	/**
 	 * @var boolean if to optimize the script files via googleCompiler(this may cause to much slower)
 	 */
-	public $optimizeScriptFiles = false;
+	public $optimizeScriptFiles = true;
 
 	/**
 	 * Combine css files and script files before renderHead.

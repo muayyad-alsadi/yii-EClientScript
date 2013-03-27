@@ -1,0 +1,13 @@
+EClientScript (an extension for Yii's CClientScript)
+
+optimizing client script manager for Yii framework
+that can minify and combine CSS/JS files 
+
+this file will automatically detects changes in file content (based on modification time)
+and generates a unique file name accordingly
+
+code is hosted under github
+
+https://github.com/muayyad-alsadi/yii-EClientScript
+
+report issues to https://github.com/muayyad-alsadi/yii-EClientScript/issues
