@@ -220,7 +220,7 @@ class EClientScript extends CClientScript
 							}
 							// Append the contents to the fileBuffer
 							$fileBuffer .= "/*** CSS File: {$url}";
-							if ($this->optimizeCssFiles 
+							if ($this->optimizeCssFiles
 								&& strpos($file, '.min.') === false && strpos($file, '.pack.') === false)
 							{
 								$fileBuffer .= ", Original size: " . number_format(strlen($contents)) . ", Compressed size: ";
@@ -378,6 +378,40 @@ class EClientScript extends CClientScript
 		$ret .= '-' . $hash . substr($name, $pos);
 
 		return $ret;
+	}
+
+	/**
+	 * Registers and optimizes css code
+	 * @param string $id ID that uniquely identifies this piece of CSS code
+	 * @param string $css the CSS code
+	 * @param string $media media that the CSS code should be applied to. If empty, it means all media types.
+	 * @return CClientScript the CClientScript object itself (to support method chaining, available since version 1.1.5).
+	 */
+	public function registerCss($id, $css, $media = '')
+	{
+		if (!YII_DEBUG)
+		{
+			$css = $this->optimizeCssCode($css);
+		}
+
+		return parent::registerCss($id, $css, $media);
+	}
+
+	/**
+	 * Registers and optimizes javascript code
+	 * @param string $id ID that uniquely identifies this piece of JavaScript code
+	 * @param string $script the javascript code
+	 * @param integer $position the position of the JavaScript code.
+	 * @return CClientScript the CClientScript object itself
+	 */
+	public function registerScript($id, $script, $postion = null)
+	{
+		if (!YII_DEBUG)
+		{
+			$script = $this->optimizeScriptCode($script);
+		}
+
+		return parent($id, $script, $position);
 	}
 
 	/**
