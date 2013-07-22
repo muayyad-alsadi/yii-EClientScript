@@ -205,7 +205,7 @@ class EClientScript extends CClientScript
 				// re-generate the file
 				if (!$valid)
 				{
-					$urlRegex = '#url\s*\(\s*([\'"])?(?!/|http://)([^\'"\s])#i';
+					$urlRegex = '#url\s*\(\s*([\'"])?(?!/|http://|data\:)([^\'"\s])#i';
 					$fileBuffer = '';
 					foreach ($files as $url => $file)
 					{
