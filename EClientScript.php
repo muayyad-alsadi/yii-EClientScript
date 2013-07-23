@@ -205,7 +205,7 @@ class EClientScript extends CClientScript
 				// re-generate the file
 				if (!$valid)
 				{
-					$urlRegex = '#url\s*\(\s*([\'"])?(?!/|http://)([^\'"\s])#i';
+					$urlRegex = '#url\s*\(\s*([\'"])?(?!/|http://|data\:)([^\'"\s])#i';
 					$fileBuffer = '';
 					foreach ($files as $url => $file)
 					{
@@ -404,14 +404,14 @@ class EClientScript extends CClientScript
 	 * @param integer $position the position of the JavaScript code.
 	 * @return CClientScript the CClientScript object itself
 	 */
-	public function registerScript($id, $script, $postion = null)
+	public function registerScript($id, $script, $position = null)
 	{
 		if (!YII_DEBUG)
 		{
 			$script = $this->optimizeScriptCode($script);
 		}
 
-		return parent($id, $script, $position);
+		return parent::registerScript($id, $script, $position);
 	}
 
 	/**
