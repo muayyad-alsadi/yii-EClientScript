@@ -51,7 +51,7 @@ Usage:
 
    ```php
      'clientScript' => array(
-       'class' => 'ext.minify.EClientScript',
+       'class' => 'application.vendors.yii-EClientScript.EClientScript',
        'combineScriptFiles' => !YII_DEBUG, // By default this is set to true, set this to true if you'd like to combine the script files
        'combineCssFiles' => !YII_DEBUG, // By default this is set to true, set this to true if you'd like to combine the css files
        'optimizeScriptFiles' => !YII_DEBUG,	// @since: 1.1
