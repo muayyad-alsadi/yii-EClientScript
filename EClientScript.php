@@ -1,94 +1,18 @@
 <?php
 /**
- * optimizing client script manager that can minify and combine files (extends CClientScript)
+ * Optimizing client script manager that can minify and combine files (extends CClientScript)
  *
- * @author Muayyad Alsadi <alsadi[at]gmail>
- * @link http://ojuba.org/
- *
- * heavily based on Hightman's EClientScript v1.3
- * @author hightman <hightman2@yahoo.com.cn>
- * @link http://www.czxiu.com/
+ * @author Muayyad Alsadi <alsadi[at]gmail>, hightman <maminglian[at]gmail>
+ * @link https://github.com/muayyad-alsadi/yii-EClientScript
  * @license http://www.yiiframework.com/license/
- * @version 1.4
- *
- */
-/**
-  Requirements
-  --------------
-  Yii 1.1.x or above
-
-  Description:
-  --------------
-  This extension just extend from {link: CClientScript} using few codes, it will allow you
-  to automatically combine all script files and css files into a single (or several) script or css files.
-  Basically this will reduce the HTTP calls for resources files by merging several resources files into
-  a single (or more) files.
-  It can automatically detect the required list of files, and generate a unique filename hash,
-  so boldly ease of use.
-
-  ####Css Files:
-  CSS files are merged based on there media attribute, background images with a relative path
-  in file can also be displayed correctly.
-
-  ####Script files:
-  Script files are merged based on their position, If you use the 'CClientScript::POS_HEAD'
-  you will end up with a single file for all the script files you've used on that page.
-  If you use 'CClientScript::POS_HEAD' and 'CClientScript::POS_END' for example then you'll
-  end up with two files for each page on that request, Since those resources are located in different positions.
-
-  ####File optmization or compress (@since: 1.1)
-  [CssMin](http://code.google.com/p/cssmin/) used to optmize merged css file. You can set property 'optmizeCssFiles' of the component to enable this feature.
-  [JSMinPlus](http://crisp.tweakblogs.net/blog/6861/jsmin%2B-version-14.html) used to optimize merged script file. You can set property 'optmizeScriptFiles' of the component to enable this feature.
-
-  Usage:
-  ---------------
-
-  Using this extension is as simple as adding the following code to the application configuration under the components array:
-
-  ~~~
-  [php]
-  'clientScript' => array(
-  'class' => 'ext.minify.EClientScript',
-  'combineScriptFiles' => true, // By default this is set to true, change it to false to disable combining JS files
-  'combineCssFiles' => true, // By default this is set to true, change it to false to disable combining CSS files
-  'optimizeScriptFiles' => true,	// @since: 1.1
-  'optimizeCssFiles' => true,	// @since: 1.1
-  ),
-  ~~~
-
-  Then you'd use the regular 'registerScriptFile' & 'registerCssFile' methods as normal and the files will be combined automatically.
-
-  NOTE:
-  ---------------
-  If you registered some external resource files that not in the web application root directory, they will be kept and not combined.
-
-  ChangesLog:
-  ---------------
-  Mar 27, 2013
-  * New version number 1.4
-  * update JSMinPlus, CssMin
-  * use stronger hash for file names
-  * consider modification time for calculating hash
-  * enable all features by default
-  Nov 23, 2010
-  * Skip the minimization of files whose names include `.pack.` (and `.min.`)
-  * Add the last modification time as the QUERY_STRING to merged file, to avoid not properly flush the browser cache when the file updated.
-  Nov 6, 2010
-  * New version number 1.3
-  * Not repeat the minimization of files those who have been minimized, whose names include `.min.`
-  * Fixed `getRelativeUrl()` platform compatibility issue. (thanks to Troto)
-
-  Reporting Issue:
-  -----------------
-  report issues to https://github.com/muayyad-alsadi/yii-EClientScript/issues
-
+ * @version 1.6
  */
 
 /**
- * Extended clientscript to automatically merge script and css files
+ * Extended clientscript to combine/optimize script and css files automatically
  *
  * @author hightman <hightman2@yahoo.com.cn>
- * @version $Id $
+ * @version $Id$
  * @package extensions.minify
  * @since 1.0
  */
@@ -98,26 +22,114 @@ class EClientScript extends CClientScript
 	 * @var combined script file name
 	 */
 	public $scriptFileName = 'script.js';
+
 	/**
 	 * @var combined css stylesheet file name
 	 */
 	public $cssFileName = 'style.css';
+
 	/**
 	 * @var boolean if to combine the script files or not
 	 */
 	public $combineScriptFiles = true;
+
 	/**
 	 * @var boolean if to combine the css files or not
 	 */
 	public $combineCssFiles = true;
+
 	/**
 	 * @var boolean if to optimize the css files
 	 */
 	public $optimizeCssFiles = true;
+
 	/**
-	 * @var boolean if to optimize the script files via googleCompiler(this may cause to much slower)
+	 * @var boolean if to optimize the script files
 	 */
 	public $optimizeScriptFiles = true;
+
+	/**
+	 * @var boolean if to optimize the inline css code
+	 */
+	public $optimizeInlineCss = false;
+
+	/**
+	 * @var boolean if to optimize the inline script code
+	 */
+	public $optimizeInlineScript = false;
+
+	/**
+	 * @var array local base path & url
+	 */
+	private $_baseUrlMap = array();
+
+	/**
+	 * @var string base request url
+	 */
+	private $_baseUrl;
+
+	/**
+	 * init base url map
+	 */
+	public function init()
+	{
+		// request
+		$this->_baseUrl = Yii::app()->request->baseUrl;
+		$baseUrl = $this->_baseUrl . '/';
+		$this->_baseUrlMap[$baseUrl] = dirname(Yii::app()->request->scriptFile) . DIRECTORY_SEPARATOR;
+		// themes
+		if (Yii::app()->theme) {
+			$baseUrl = Yii::app()->theme->baseUrl . '/';
+			$this->_baseUrlMap[$baseUrl] = Yii::app()->theme->basePath . DIRECTORY_SEPARATOR;
+		}
+		parent::init();
+	}
+
+	/**
+	 * Change default of script position to CClinetScript::POS_END
+	 */
+	public function registerScriptFile($url, $position = self::POS_END, array $htmlOptions = array())
+	{
+		if (substr($url, 0, 1) !== '/' && strpos($url, '://') === false) {
+			$url = $this->_baseUrl . '/' . $url;
+		}
+		return parent::registerScriptFile($url, $position, $htmlOptions);
+	}
+
+	public function registerCssFile($url, $media = '')
+	{
+		if (substr($url, 0, 1) !== '/' && strpos($url, '://') === false) {
+			$url = $this->_baseUrl . '/' . $url;
+		}
+		parent::registerCssFile($url, $media);
+	}
+
+	public function registerCss($id, $css, $media = '')
+	{
+		if ($this->optimizeInlineCss) {
+			$css = $this->optimizeCssCode($css);
+		}
+		return parent::registerCss($id, $css, $media);
+	}
+
+	public function registerScript($id, $script, $position = self::POS_READY, array $htmlOptions = array())
+	{
+		if ($this->optimizeInlineScript) {
+			$script = $this->optimizeScriptCode($script);
+		} elseif ($position === self::POS_READY) {
+			$script = "\t" . str_replace("\n", "\n\t", $script);
+		}
+		parent::registerScript($id, $script, $position, $htmlOptions);
+	}
+
+	public function render(&$output)
+	{
+		parent::render($output);
+		// conditional js/css for IE
+		if ($this->hasScripts) {
+			$output = preg_replace('#(<(?:link|script) .+?) media="([lg]te? IE \d+)"(.*?>(?:</script>)?)#', '<!--[if \2]>\1\3<![endif]-->', $output);
+		}
+	}
 
 	/**
 	 * Combine css files and script files before renderHead.
@@ -125,12 +137,12 @@ class EClientScript extends CClientScript
 	 */
 	public function renderHead(&$output)
 	{
-		if ($this->combineCssFiles)
+		if ($this->combineCssFiles) {
 			$this->combineCssFiles();
-
-		if ($this->combineScriptFiles && $this->enableJavaScript)
+		}
+		if ($this->combineScriptFiles && $this->enableJavaScript) {
 			$this->combineScriptFiles(self::POS_HEAD);
-
+		}
 		parent::renderHead($output);
 	}
 
@@ -141,9 +153,9 @@ class EClientScript extends CClientScript
 	public function renderBodyBegin(&$output)
 	{
 		// $this->enableJavascript has been checked in parent::render()
-		if ($this->combineScriptFiles)
+		if ($this->combineScriptFiles) {
 			$this->combineScriptFiles(self::POS_BEGIN);
-
+		}
 		parent::renderBodyBegin($output);
 	}
 
@@ -154,9 +166,9 @@ class EClientScript extends CClientScript
 	public function renderBodyEnd(&$output)
 	{
 		// $this->enableJavascript has been checked in parent::render()
-		if ($this->combineScriptFiles)
+		if ($this->combineScriptFiles) {
 			$this->combineScriptFiles(self::POS_END);
-
+		}
 		parent::renderBodyEnd($output);
 	}
 
@@ -167,62 +179,72 @@ class EClientScript extends CClientScript
 	protected function combineCssFiles()
 	{
 		// Check the need for combination
-		if (count($this->cssFiles) < 2)
+		if (count($this->cssFiles) < 2) {
 			return;
-
+		}
 		$cssFiles = array();
-		$toBeCombined = array();
-		foreach ($this->cssFiles as $url => $media)
-		{
+		foreach ($this->cssFiles as $url => $media) {
 			$file = $this->getLocalPath($url);
-			if ($file === false)
+			if ($file === false) {
 				$cssFiles[$url] = $media;
-			else
-			{
-				$media = strtolower($media);
-				if ($media === '')
-					$media = 'all';
-				if (!isset($toBeCombined[$media]))
-					$toBeCombined[$media] = array();
-				$toBeCombined[$media][$url] = $file;
+			} else {
+				// DO-NOT convert media to lower HERE (i.e: lt IE 6)
+				$media = $media === '' ? 'all' : $media;
+				if (!isset($cssFiles[$media])) {
+					$cssFiles[$media] = array();
+				}
+				$cssFiles[$media][$url] = $file;
 			}
 		}
 
-		foreach ($toBeCombined as $media => $files)
-		{
-			if ($media === 'all')
+		$this->cssFiles = array();
+		foreach ($cssFiles as $media => $files) {
+			if ($media === 'all') {
 				$media = '';
-
-			if (count($files) === 1)
+			}
+			if (!is_array($files)) {
+				$url = $media;
+				$media = $files;
+			} elseif (count($files) === 1) {
 				$url = key($files);
-			else
-			{
+			} else {
 				// get unique combined filename
 				$fname = $this->getCombinedFileName($this->cssFileName, $files, $media);
 				$fpath = Yii::app()->assetManager->basePath . DIRECTORY_SEPARATOR . $fname;
 				// check exists file
-				$valid = file_exists($fpath);
+				if (($valid = file_exists($fpath)) === true) {
+					$mtime = filemtime($fpath);
+					foreach ($files as $file) {
+						if ($mtime < filemtime($file)) {
+							$valid = false;
+							break;
+						}
+					}
+				}
 				// re-generate the file
-				if (!$valid)
-				{
+				if (!$valid) {
 					$urlRegex = '#url\s*\(\s*([\'"])?(?!/|http://|data\:)([^\'"\s])#i';
 					$fileBuffer = '';
-					foreach ($files as $url => $file)
-					{
+					$charsetLine = '';
+					foreach ($files as $url => $file) {
 						$contents = file_get_contents($file);
-						if ($contents)
-						{
+						if ($contents) {
 							// Reset relative url() in css file
-							if (preg_match($urlRegex, $contents))
-							{
+							if (preg_match($urlRegex, $contents)) {
 								$reurl = $this->getRelativeUrl(Yii::app()->assetManager->baseUrl, dirname($url));
 								$contents = preg_replace($urlRegex, 'url(${1}' . $reurl . '/${2}', $contents);
 							}
+							// Check @charset line
+							if (preg_match('/@charset\s+"(.+?)";?/', $contents, $matches)) {
+								if ($charsetLine === '') {
+									$charsetLine = '@charset "' . $matches[1] . '"' . ";\n";
+								}
+								$contents = preg_replace('/@charset\s+"(.+?)";?/', '', $contents);
+							}
+
 							// Append the contents to the fileBuffer
 							$fileBuffer .= "/*** CSS File: {$url}";
-							if ($this->optimizeCssFiles
-								&& strpos($file, '.min.') === false && strpos($file, '.pack.') === false)
-							{
+							if ($this->optimizeCssFiles && strpos($file, '.min.') === false && strpos($file, '.pack.') === false) {
 								$fileBuffer .= ", Original size: " . number_format(strlen($contents)) . ", Compressed size: ";
 								$contents = $this->optimizeCssCode($contents);
 								$fileBuffer .= number_format(strlen($contents));
@@ -231,15 +253,13 @@ class EClientScript extends CClientScript
 							$fileBuffer .= $contents . "\n\n";
 						}
 					}
-					file_put_contents($fpath, $fileBuffer);
+					file_put_contents($fpath, $charsetLine . $fileBuffer);
 				}
 				// real url of combined file
 				$url = Yii::app()->assetManager->baseUrl . '/' . $fname . '?' . filemtime($fpath);
 			}
-			$cssFiles[$url] = $media;
+			$this->cssFiles[$url] = $media;
 		}
-		// use new cssFiles list replace old ones
-		$this->cssFiles = $cssFiles;
 	}
 
 	/**
@@ -249,47 +269,50 @@ class EClientScript extends CClientScript
 	 */
 	protected function combineScriptFiles($type = self::POS_HEAD)
 	{
+
 		// Check the need for combination
-		if (!isset($this->scriptFiles[$type]) || count($this->scriptFiles[$type]) < 2)
+		if (!isset($this->scriptFiles[$type]) || count($this->scriptFiles[$type]) < 2) {
 			return;
-
-		$scriptFiles = array();
-		$toBeCombined = array();
-		foreach ($this->scriptFiles[$type] as $url)
-		{
-			$file = $this->getLocalPath($url);
-			if ($file === false)
-				$scriptFiles[$url] = $url;
-			else
-				$toBeCombined[$url] = $file;
 		}
-
-		if (count($toBeCombined) === 1)
-		{
-			$url = key($toBeCombined);
-			$scriptFiles[$url] = $url;
+		$toCombine = array();
+		$indexCombine = 0;
+		$scriptName = $scriptValue = array();
+		foreach ($this->scriptFiles[$type] as $url => $value) {
+			if (is_array($value) || !($file = $this->getLocalPath($url))) {
+				$scriptName[] = $url;
+				$scriptValue[] = $value;
+			} else {
+				if (count($toCombine) === 0) {
+					$indexCombine = count($scriptName);
+					$scriptName[] = $url;
+					$scriptValue[] = $url;
+				}
+				$toCombine[$url] = $file;
+			}
 		}
-		else if (count($toBeCombined) > 1)
-		{
+		if (count($toCombine) > 1) {
 			// get unique combined filename
-			$fname = $this->getCombinedFileName($this->scriptFileName, array_values($toBeCombined), $type);
+			$fname = $this->getCombinedFileName($this->scriptFileName, array_values($toCombine), $type);
 			$fpath = Yii::app()->assetManager->basePath . DIRECTORY_SEPARATOR . $fname;
 			// check exists file
-			$valid = file_exists($fpath);
+			if (($valid = file_exists($fpath)) === true) {
+				$mtime = filemtime($fpath);
+				foreach ($toCombine as $file) {
+					if ($mtime < filemtime($file)) {
+						$valid = false;
+						break;
+					}
+				}
+			}
 			// re-generate the file
-			if (!$valid)
-			{
+			if (!$valid) {
 				$fileBuffer = '';
-				foreach ($toBeCombined as $url => $file)
-				{
+				foreach ($toCombine as $url => $file) {
 					$contents = file_get_contents($file);
-					if ($contents)
-					{
+					if ($contents) {
 						// Append the contents to the fileBuffer
 						$fileBuffer .= "/*** Script File: {$url}";
-						if ($this->optimizeScriptFiles
-							&& strpos($file, '.min.') === false && strpos($file, '.pack.') === false)
-						{
+						if ($this->optimizeScriptFiles && strpos($file, '.min.') === false && strpos($file, '.pack.') === false) {
 							$fileBuffer .= ", Original size: " . number_format(strlen($contents)) . ", Compressed size: ";
 							$contents = $this->optimizeScriptCode($contents);
 							$fileBuffer .= number_format(strlen($contents));
@@ -301,11 +324,12 @@ class EClientScript extends CClientScript
 				file_put_contents($fpath, $fileBuffer);
 			}
 			// add the combined file into scriptFiles
-			$url = Yii::app()->assetManager->baseUrl . '/' . $fname . '?' . filemtime($fpath);;
-			$scriptFiles[$url] = $url;
+			$url = Yii::app()->assetManager->baseUrl . '/' . $fname . '?' . filemtime($fpath);
+			$scriptName[$indexCombine] = $url;
+			$scriptValue[$indexCombine] = $url;
 		}
 		// use new scriptFiles list replace old ones
-		$this->scriptFiles[$type] = $scriptFiles;
+		$this->scriptFiles[$type] = array_combine($scriptName, $scriptValue);
 	}
 
 	/**
@@ -314,12 +338,10 @@ class EClientScript extends CClientScript
 	 */
 	private function getLocalPath($url)
 	{
-		$basePath = dirname(Yii::app()->request->scriptFile) . DIRECTORY_SEPARATOR;
-		$baseUrl = Yii::app()->request->baseUrl . '/';
-		if (!strncmp($url, $baseUrl, strlen($baseUrl)))
-		{
-			$url = $basePath . substr($url, strlen($baseUrl));
-			return $url;
+		foreach ($this->_baseUrlMap as $baseUrl => $basePath) {
+			if (!strncmp($url, $baseUrl, strlen($baseUrl))) {
+				return $basePath . substr($url, strlen($baseUrl));
+			}
 		}
 		return false;
 	}
@@ -333,27 +355,17 @@ class EClientScript extends CClientScript
 	private function getRelativeUrl($from, $to)
 	{
 		$relative = '';
-		while (true)
-		{
-			if ($from === $to)
+		while (true) {
+			if ($from === $to) {
 				return $relative;
-			else if ($from === dirname($from))
+			} elseif ($from === dirname($from)) {
 				return $relative . substr($to, 1);
-			if (!strncmp($from . '/', $to, strlen($from) + 1))
+			} elseif (!strncmp($from . '/', $to, strlen($from) + 1)) {
 				return $relative . substr($to, strlen($from) + 1);
-
+			}
 			$from = dirname($from);
 			$relative .= '../';
 		}
-	}
-
-	/**
-	 * Generates base64-like md5sum hash (smaller than hex md5sum)
-	 * @param string $s the string to hash
-	 * @return string a one way hash of the given string
-	 */
-	public function hash($s) {
-		return str_replace(array('+', '/', '='), array('-', '_', ''), base64_encode(md5($s,1)));
 	}
 
 	/**
@@ -365,53 +377,14 @@ class EClientScript extends CClientScript
 	 */
 	private function getCombinedFileName($name, $files, $type = '')
 	{
+		$raw = '';
+		foreach ($files as $file) {
+			$raw .= "\0" . $file . "\0" . @filemtime($file);
+		}
+		$ext = ($type === '' ? '' : '-' . $type) . '-' . substr(base64_encode(md5($raw, true)), 0, -2);
 		$pos = strrpos($name, '.');
-		if (!$pos)
-			$pos = strlen($pos);
-		$s='';
-		foreach($files as $file) $s.="\0$file\0".filemtime($file);
-		$hash = self::hash($s);
-
-		$ret = substr($name, 0, $pos);
-		if ($type !== '')
-			$ret .= '-' . $type;
-		$ret .= '-' . $hash . substr($name, $pos);
-
-		return $ret;
-	}
-
-	/**
-	 * Registers and optimizes css code
-	 * @param string $id ID that uniquely identifies this piece of CSS code
-	 * @param string $css the CSS code
-	 * @param string $media media that the CSS code should be applied to. If empty, it means all media types.
-	 * @return CClientScript the CClientScript object itself (to support method chaining, available since version 1.1.5).
-	 */
-	public function registerCss($id, $css, $media = '')
-	{
-		if (!YII_DEBUG)
-		{
-			$css = $this->optimizeCssCode($css);
-		}
-
-		return parent::registerCss($id, $css, $media);
-	}
-
-	/**
-	 * Registers and optimizes javascript code
-	 * @param string $id ID that uniquely identifies this piece of JavaScript code
-	 * @param string $script the javascript code
-	 * @param integer $position the position of the JavaScript code.
-	 * @return CClientScript the CClientScript object itself
-	 */
-	public function registerScript($id, $script, $position = null)
-	{
-		if (!YII_DEBUG)
-		{
-			$script = $this->optimizeScriptCode($script);
-		}
-
-		return parent::registerScript($id, $script, $position);
+		$name = $pos === false ? $name . $ext : substr_replace($name, $ext, $pos, 0);
+		return strtr($name, '+=/ ', '--__');
 	}
 
 	/**
@@ -426,7 +399,7 @@ class EClientScript extends CClientScript
 	}
 
 	/**
-	 * Optimize script via google compiler
+	 * Optimize script code
 	 * @param string $data script code
 	 * @return string optimized script code
 	 */
