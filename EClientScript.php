@@ -127,7 +127,7 @@ class EClientScript extends CClientScript
 		parent::render($output);
 		// conditional js/css for IE
 		if ($this->hasScripts) {
-			$output = preg_replace('#(<(?:link|script) .+?) media="([lg]te? IE \d+)"(.*?>(?:</script>)?)#', '<!--[if \2]>\1\3<![endif]-->', $output);
+			$output = preg_replace('#(<(?:link|script) .+?) media="((?:[lg]te? )?IE \d+)"(.*?>(?:</script>)?)#', '<!--[if \2]>\1\3<![endif]-->', $output);
 		}
 	}
 
