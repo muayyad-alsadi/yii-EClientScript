@@ -59,6 +59,11 @@ class EClientScript extends CClientScript
 	public $optimizeInlineScript = false;
 
 	/**
+	 * @var boolean save gzipped version of combined files (useful for nginx's gzip_static)
+	 */
+	public $saveGzippedCopy = true;
+
+	/**
 	 * @var array local base path & url
 	 */
 	private $_baseUrlMap = array();
@@ -172,6 +177,15 @@ class EClientScript extends CClientScript
 		parent::renderBodyEnd($output);
 	}
 
+	protected function saveFile($fpath, $fileBuffer) {
+		file_put_contents($fpath, $fileBuffer);
+		if ($this->saveGzippedCopy && function_exists('gzencode')) {
+			$compressedFileBuffer = gzencode($fileBuffer, 9);
+			file_put_contents($fpath.'.gz', $compressedFileBuffer);
+			Yii::trace('Saved gzipped copy for '.pathinfo($fpath, PATHINFO_BASENAME).' which is '.number_format(strlen($fileBuffer) / strlen($compressedFileBuffer)).' times smaller.');
+		}
+	}
+
 	/**
 	 * Combine the CSS files, if cached enabled then cache the result so we won't have to do that
 	 * Every time
@@ -253,7 +267,7 @@ class EClientScript extends CClientScript
 							$fileBuffer .= $contents . "\n\n";
 						}
 					}
-					file_put_contents($fpath, $charsetLine . $fileBuffer);
+					$this->saveFile($fpath, $charsetLine . $fileBuffer);
 				}
 				// real url of combined file
 				$url = Yii::app()->assetManager->baseUrl . '/' . $fname . '?' . filemtime($fpath);
@@ -321,7 +335,7 @@ class EClientScript extends CClientScript
 						$fileBuffer .= $contents . "\n;\n";
 					}
 				}
-				file_put_contents($fpath, $fileBuffer);
+				$this->saveFile($fpath, $fileBuffer);
 			}
 			// add the combined file into scriptFiles
 			$url = Yii::app()->assetManager->baseUrl . '/' . $fname . '?' . filemtime($fpath);
