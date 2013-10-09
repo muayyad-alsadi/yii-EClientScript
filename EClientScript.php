@@ -64,6 +64,11 @@ class EClientScript extends CClientScript
 	public $saveGzippedCopy = true;
 
 	/**
+	 * @var boolean add file name / original size / compressed size comment to combined file
+	 */
+	public $addFileComment = true;
+
+	/**
 	 * @var array local base path & url
 	 */
 	private $_baseUrlMap = array();
@@ -257,14 +262,12 @@ class EClientScript extends CClientScript
 							}
 
 							// Append the contents to the fileBuffer
-							$fileBuffer .= "/*** CSS File: {$url}";
 							if ($this->optimizeCssFiles && strpos($file, '.min.') === false && strpos($file, '.pack.') === false) {
-								$fileBuffer .= ", Original size: " . number_format(strlen($contents)) . ", Compressed size: ";
+								$original_size = number_format(strlen($contents));
 								$contents = $this->optimizeCssCode($contents);
-								$fileBuffer .= number_format(strlen($contents));
+								$compressed_size = number_format(strlen($contents));
 							}
-							$fileBuffer .= " ***/\n";
-							$fileBuffer .= $contents . "\n\n";
+							$fileBuffer .= ( $this->addFileComment ? "/*** CSS File: {$url}" . ( $this->optimizeCssFiles ? ", Original size: " . $original_size . ", Compressed size: " . $compressed_size : "" ) . " ***/\n" : "" ) . $contents . "\n\n";
 						}
 					}
 					$this->saveFile($fpath, $charsetLine . $fileBuffer);
@@ -325,14 +328,12 @@ class EClientScript extends CClientScript
 					$contents = file_get_contents($file);
 					if ($contents) {
 						// Append the contents to the fileBuffer
-						$fileBuffer .= "/*** Script File: {$url}";
 						if ($this->optimizeScriptFiles && strpos($file, '.min.') === false && strpos($file, '.pack.') === false) {
-							$fileBuffer .= ", Original size: " . number_format(strlen($contents)) . ", Compressed size: ";
+							$original_size = number_format(strlen($contents));
 							$contents = $this->optimizeScriptCode($contents);
-							$fileBuffer .= number_format(strlen($contents));
+							$compressed_size = number_format(strlen($contents));
 						}
-						$fileBuffer .= " ***/\n";
-						$fileBuffer .= $contents . "\n;\n";
+						$fileBuffer .= ( $this->addFileComment ? "/*** Script File: {$url}" . ( $this->optimizeScriptFiles ? ", Original size: " . $original_size . ", Compressed size: " . $compressed_size : "") . " ***/\n" : "" ) . $contents . "\n;\n";
 					}
 				}
 				$this->saveFile($fpath, $fileBuffer);
