@@ -61,7 +61,7 @@ class EClientScript extends CClientScript
 	/**
 	 * @var boolean save gzipped version of combined files (useful for nginx's gzip_static)
 	 */
-	public $saveGzippedCopy = true;
+	public $saveGzippedCopy = false;
 
 	/**
 	 * @var boolean add file name / original size / compressed size comment to combined file
