@@ -111,7 +111,7 @@ class EClientScript extends CClientScript
 		if (substr($url, 0, 1) !== '/' && strpos($url, '://') === false) {
 			$url = $this->_baseUrl . '/' . $url;
 		}
-		parent::registerCssFile($url, $media);
+		return parent::registerCssFile($url, $media);
 	}
 
 	public function registerCss($id, $css, $media = '')
@@ -129,7 +129,7 @@ class EClientScript extends CClientScript
 		} elseif ($position === self::POS_READY) {
 			$script = "\t" . str_replace("\n", "\n\t", $script);
 		}
-		parent::registerScript($id, $script, $position, $htmlOptions);
+		return parent::registerScript($id, $script, $position, $htmlOptions);
 	}
 
 	public function render(&$output)
