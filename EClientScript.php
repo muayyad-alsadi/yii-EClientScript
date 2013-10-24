@@ -61,7 +61,12 @@ class EClientScript extends CClientScript
 	/**
 	 * @var boolean save gzipped version of combined files (useful for nginx's gzip_static)
 	 */
-	public $saveGzippedCopy = true;
+	public $saveGzippedCopy = false;
+
+	/**
+	 * @var boolean add file name / original size / compressed size comment to combined file
+	 */
+	public $addFileComment = true;
 
 	/**
 	 * @var array local base path & url
@@ -106,7 +111,7 @@ class EClientScript extends CClientScript
 		if (substr($url, 0, 1) !== '/' && strpos($url, '://') === false) {
 			$url = $this->_baseUrl . '/' . $url;
 		}
-		parent::registerCssFile($url, $media);
+		return parent::registerCssFile($url, $media);
 	}
 
 	public function registerCss($id, $css, $media = '')
@@ -124,7 +129,7 @@ class EClientScript extends CClientScript
 		} elseif ($position === self::POS_READY) {
 			$script = "\t" . str_replace("\n", "\n\t", $script);
 		}
-		parent::registerScript($id, $script, $position, $htmlOptions);
+		return parent::registerScript($id, $script, $position, $htmlOptions);
 	}
 
 	public function render(&$output)
@@ -257,14 +262,12 @@ class EClientScript extends CClientScript
 							}
 
 							// Append the contents to the fileBuffer
-							$fileBuffer .= "/*** CSS File: {$url}";
 							if ($this->optimizeCssFiles && strpos($file, '.min.') === false && strpos($file, '.pack.') === false) {
-								$fileBuffer .= ", Original size: " . number_format(strlen($contents)) . ", Compressed size: ";
+								$original_size = number_format(strlen($contents));
 								$contents = $this->optimizeCssCode($contents);
-								$fileBuffer .= number_format(strlen($contents));
+								$compressed_size = number_format(strlen($contents));
 							}
-							$fileBuffer .= " ***/\n";
-							$fileBuffer .= $contents . "\n\n";
+							$fileBuffer .= ( $this->addFileComment ? "/*** CSS File: {$url}" . ( $this->optimizeCssFiles ? ", Original size: " . $original_size . ", Compressed size: " . $compressed_size : "" ) . " ***/\n" : "" ) . $contents . "\n\n";
 						}
 					}
 					$this->saveFile($fpath, $charsetLine . $fileBuffer);
@@ -325,14 +328,12 @@ class EClientScript extends CClientScript
 					$contents = file_get_contents($file);
 					if ($contents) {
 						// Append the contents to the fileBuffer
-						$fileBuffer .= "/*** Script File: {$url}";
 						if ($this->optimizeScriptFiles && strpos($file, '.min.') === false && strpos($file, '.pack.') === false) {
-							$fileBuffer .= ", Original size: " . number_format(strlen($contents)) . ", Compressed size: ";
+							$original_size = number_format(strlen($contents));
 							$contents = $this->optimizeScriptCode($contents);
-							$fileBuffer .= number_format(strlen($contents));
+							$compressed_size = number_format(strlen($contents));
 						}
-						$fileBuffer .= " ***/\n";
-						$fileBuffer .= $contents . "\n;\n";
+						$fileBuffer .= ( $this->addFileComment ? "/*** Script File: {$url}" . ( $this->optimizeScriptFiles ? ", Original size: " . $original_size . ", Compressed size: " . $compressed_size : "") . " ***/\n" : "" ) . $contents . "\n;\n";
 					}
 				}
 				$this->saveFile($fpath, $fileBuffer);
