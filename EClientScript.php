@@ -266,6 +266,8 @@ class EClientScript extends CClientScript
 								$original_size = number_format(strlen($contents));
 								$contents = $this->optimizeCssCode($contents);
 								$compressed_size = number_format(strlen($contents));
+							} elseif ($this->addFileComment) {
+								$original_size = $compressed_size = number_format(strlen($contents));
 							}
 							$fileBuffer .= ( $this->addFileComment ? "/*** CSS File: {$url}" . ( $this->optimizeCssFiles ? ", Original size: " . $original_size . ", Compressed size: " . $compressed_size : "" ) . " ***/\n" : "" ) . $contents . "\n\n";
 						}
@@ -332,6 +334,8 @@ class EClientScript extends CClientScript
 							$original_size = number_format(strlen($contents));
 							$contents = $this->optimizeScriptCode($contents);
 							$compressed_size = number_format(strlen($contents));
+						} elseif ($this->addFileComment) {
+							$original_size = $compressed_size = number_format(strlen($contents));
 						}
 						$fileBuffer .= ( $this->addFileComment ? "/*** Script File: {$url}" . ( $this->optimizeScriptFiles ? ", Original size: " . $original_size . ", Compressed size: " . $compressed_size : "") . " ***/\n" : "" ) . $contents . "\n;\n";
 					}
