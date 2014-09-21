@@ -67,6 +67,13 @@ class EClientScript extends CClientScript
 	 * @var boolean add file name / original size / compressed size comment to combined file
 	 */
 	public $addFileComment = true;
+	
+	/*
+	 * @var array parameters to pass to backend
+	 **/
+	public $backendOptions = array(
+		'CssMin'=>array('filters'=>array(), 'plugins'=>array('CompressUnitValues' => true)),
+	);
 
 	/**
 	 * @var array local base path & url
@@ -414,7 +421,7 @@ class EClientScript extends CClientScript
 	private function optimizeCssCode($code)
 	{
 		require_once dirname(__FILE__) . DIRECTORY_SEPARATOR . 'CssMin.php';
-		return CssMin::minify($code, array(), array('CompressUnitValues' => true));
+		return CssMin::minify($code, $this->backendOptions['CssMin']['filters'], $this->backendOptions['CssMin']['plugins']);
 	}
 
 	/**
