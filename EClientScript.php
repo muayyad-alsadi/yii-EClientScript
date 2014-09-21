@@ -282,7 +282,7 @@ class EClientScript extends CClientScript
 					$this->saveFile($fpath, $charsetLine . $fileBuffer);
 				}
 				// real url of combined file
-				$url = Yii::app()->assetManager->baseUrl . '/' . $fname . '?' . filemtime($fpath);
+				$url = Yii::app()->assetManager->baseUrl . '/' . $fname;
 			}
 			$this->cssFiles[$url] = $media;
 		}
@@ -350,7 +350,7 @@ class EClientScript extends CClientScript
 				$this->saveFile($fpath, $fileBuffer);
 			}
 			// add the combined file into scriptFiles
-			$url = Yii::app()->assetManager->baseUrl . '/' . $fname . '?' . filemtime($fpath);
+			$url = Yii::app()->assetManager->baseUrl . '/' . $fname;
 			$scriptName[$indexCombine] = $url;
 			$scriptValue[$indexCombine] = $url;
 		}
