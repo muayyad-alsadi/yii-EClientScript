@@ -304,7 +304,7 @@ class EClientScript extends CClientScript
 		$indexCombine = 0;
 		$scriptName = $scriptValue = array();
 		foreach ($this->scriptFiles[$type] as $url => $value) {
-			if (is_array($value) || !($file = $this->getLocalPath($url))) {
+			if (is_array($value) || !($file = $this->getLocalPath($url)) || strpos($url,'//')!==false ) {
 				$scriptName[] = $url;
 				$scriptValue[] = $value;
 			} else {
