@@ -365,7 +365,7 @@ class EClientScript extends CClientScript
 	private function getLocalPath($url)
 	{
 		foreach ($this->_baseUrlMap as $baseUrl => $basePath) {
-			if (!strncmp($url, $baseUrl, strlen($baseUrl))) {
+			if (strpos($url, '//') === FALSE && !strncmp($url, $baseUrl, strlen($baseUrl))) {
 				return $basePath . substr($url, strlen($baseUrl));
 			}
 		}
