@@ -101,7 +101,7 @@ ChangesLog:
 **Mar 29, 2013**
 
 - New version number 1.5
-- Compatiable with the 3rd parameter of `registerScript` and `registerScriptFile`
+- Compatible with the 3rd parameter of `registerScript` and `registerScriptFile`
 - Add support for conditional loading js/css file in IE.
 - Prepend the base url of current request when register a script/css file with relative path
 
